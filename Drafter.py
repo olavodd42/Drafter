@@ -45,3 +45,75 @@ def save(filename: str) -> str:
 tools = [update, save]
 
 model = ChatOpenAI(model="gpt-4o-mini").bind_tools(tools)
+
+def our_model(state: AgentState) -> AgentState:
+    system_prompt = SystemMessage(content=f"""
+    You are Drafter, a helpful writing assistant. You are going to help the user update and modify documents.
+    
+    - If the user wants to update or modify content, use the 'update' tool with the complete updated content.
+    - If the user wants to save and finish, you need to use the 'save' tool.
+    - Make sure to always show the current document state after modifications.
+    
+    The current document content is:{document_content}
+    """)
+
+    if not state["messages"]:
+        user_input = "I'm ready to help you update a document. What would you like to create?"
+        user_message = HumanMessage(content=user_input)
+    else:
+        user_input = input("\nWhat would you like to do with the document?")
+        print(f"\n👤 USER: {user_input}")
+        user_message = HumanMessage(content=user_input)
+
+    all_messages = [system_prompt] + list(state["messages"]) + [user_message]
+    response = model.invoke(all_messages)
+
+    print(f"\n🤖 AI: {response.content}")
+    if hasattr(response, "tool_calls") and response.tool_calls:
+        print(f"🔧 USING TOOLS: {[tc['name'] for tc in response.tool_calls]}")
+
+    return {"messages": list(state["messages"]) + [user_message, response]}
+
+def should_continue(state: AgentState) -> str:
+    """Determine if we should continue or end the conversation."""
+
+    messages = state["messages"]
+
+    if not messages:
+        return "continue"
+    
+    # Look for the most recent tool
+    for message in reversed(messages):
+        if isinstance(message, ToolMessage) \
+            and "saved" in message.content.lower() \
+            and "document" in message.content.lower():
+            return "end"
+        
+    return "continue"
+
+def print_messages(messages):
+    """Function I made to print the messages in a more readable format"""
+    if not messages:
+        return
+    
+    for message in messages[-3:]:
+        if isinstance(message, ToolMessage):
+            print(f"\n🛠️ TOOL RESULT: {message.content}")
+
+
+graph = StateGraph(AgentState)
+graph.add_node("agent", our_model)
+graph.add_node("tools", ToolNode(tools))
+
+graph.add_edge(START, "agent")
+graph.add_edge("agent", "tools")
+graph.add_conditional_edges(
+    "tools",
+    should_continue,
+    {
+        "continue": "agent",
+        "end": END
+    }
+)
+
+app = graph.compile()
