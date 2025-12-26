@@ -46,7 +46,7 @@ with st.sidebar:
         
         if st.button("Transcrever e Inserir"):
             # Adiciona uma mensagem oculta instruindo o agente a usar a ferramenta
-            instruction = f"Por favor, transcreva o áudio localizado neste caminho: {tmp_path}"
+            instruction = f"O usuário enviou um áudio no caminho: {tmp_path}. Transcreva o áudio. ATENÇÃO: O texto transcrito é uma instrução. NÃO salve o texto transcrito diretamente. LEIA a transcrição e EXECUTE o que ela pede."
             st.session_state.messages.append(HumanMessage(content=instruction))
             
             # Processa imediatamente

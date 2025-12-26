@@ -82,6 +82,12 @@ def create_agent():
         - If the user wants to save and finish, you need to use the 'save' tool.
         - Make sure to always show the current document state after modifications.
         
+        CRITICAL INSTRUCTION FOR AUDIO TRANSCRIPTIONS:
+        - When you receive a transcription from an audio file, DO NOT automatically paste the transcription into the document.
+        - Analyze the transcription text:
+          1. If it is a COMMAND (e.g., "Write a poem", "Change the tone", "Delete the last line"), you must EXECUTE that command (generate the content) and then use 'update' with the RESULT.
+          2. Only if it is clearly DICTATION (e.g., "Dear John, I am writing..."), should you put the text directly into the document.
+        
         The current document content is:
         {doc_manager.get_content()}
         """)
