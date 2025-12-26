@@ -1,4 +1,5 @@
 import sys
+import whisper
 from typing import Annotated, Sequence, TypedDict
 from dotenv import load_dotenv
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, ToolMessage
@@ -53,13 +54,26 @@ def create_agent():
     def save(filename: str) -> str:
         """Save the current document to a text file and finish the proccess."""
         return doc_manager.save(filename)
+    
+    whisper_model = whisper.load_model("small")
+    
+    @tool
+    def transcribe_audio(audio_data: str) -> str:
+        """Transcribes an audio file to text."""
+        try:
+            result = whisper_model.transcribe(audio_data)
+            return result["text"]
+        except Exception as e:
+            return f"Error transcribing audio: {e}"
 
-    tools = [update, save]
+    tools = [update, save, transcribe_audio]
     
     # Initialize model
     # Note: Ensure OPENAI_API_KEY is set in .env
     model = ChatOpenAI(model="gpt-4o-mini").bind_tools(tools)
 
+
+    
     def agent_node(state: AgentState) -> AgentState:
         system_prompt = SystemMessage(content=f"""
         You are Drafter, a helpful writing assistant. You are going to help the user update and modify documents.
