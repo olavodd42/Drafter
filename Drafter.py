@@ -75,26 +75,35 @@ def create_agent():
 
     
     def agent_node(state: AgentState) -> AgentState:
+        # ATUALIZAÇÃO AQUI: Prompt reforçado
         system_prompt = SystemMessage(content=f"""
         You are Drafter, a helpful writing assistant. You are going to help the user update and modify documents.
         
+        The current document content is:
+        {doc_manager.get_content()}
+
+        TOOLS USAGE:
         - If the user wants to update or modify content, use the 'update' tool with the complete updated content.
         - If the user wants to save and finish, you need to use the 'save' tool.
         - Make sure to always show the current document state after modifications.
         
-        CRITICAL INSTRUCTION FOR AUDIO TRANSCRIPTIONS:
-        - When you receive a transcription from an audio file, DO NOT automatically paste the transcription into the document.
-        - Analyze the transcription text:
-          1. If it is a COMMAND (e.g., "Write a poem", "Change the tone", "Delete the last line"), you must EXECUTE that command (generate the content) and then use 'update' with the RESULT.
-          2. Only if it is clearly DICTATION (e.g., "Dear John, I am writing..."), should you put the text directly into the document.
+        AUDIO TRANSCRIPTION RULES (CRITICAL):
+        1. FIRST, transcribe the audio using 'transcribe_audio'.
+        2. THEN, READ the transcribed text.
+        3. DECIDE:
+           - Is it a COMMAND? (e.g., "Write an email", "Change tone", "Fix grammar") -> EXECUTE the command. Generate the new content yourself. DO NOT paste the command into the document.
+           - Is it DICTATION? (e.g., "The project deadline is...") -> Paste the text exactly as is.
         
-        The current document content is:
-        {doc_manager.get_content()}
+        EXAMPLE OF FAILURE (DO NOT DO THIS):
+        - Audio: "Write a poem about roses."
+        - Wrong Action: update("Write a poem about roses.")
+        
+        EXAMPLE OF SUCCESS (DO THIS):
+        - Audio: "Write a poem about roses."
+        - Correct Action: update("Roses are red, violets are blue...")
         """)
         
-        # Filter out previous system messages to avoid duplication if we were appending blindly,
-        # but since we reconstruct the list for the model, it's fine.
-        # However, we should ensure the system prompt is always first.
+        # Filter out previous system messages... (restante do código mantido)
         messages = [system_prompt] + [m for m in state["messages"] if not isinstance(m, SystemMessage)]
         
         response = model.invoke(messages)
