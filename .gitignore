@@ -1,5 +1,6 @@
 *.txt
-.vscode
+!requirements.txt
+.vscode/
 .env
 venv/
 __pycache__/
